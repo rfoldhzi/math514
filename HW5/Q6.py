@@ -7,6 +7,10 @@ def polyMult(A,B):
             if i+j<len(result): result[i+j] += a*b
     return result
 
+# Test results:
+#>>> polyMult([1,2,3], [1,0,-3,0,9])
+#[1, 2, 0, -6, 0, 18]
+
 def polyScale(A,c):
     result = []
     for a in A:
