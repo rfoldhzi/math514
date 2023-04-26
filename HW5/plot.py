@@ -22,6 +22,7 @@ x = np.linspace(-13,13,1000)
 y = [np.polyval(curve, i) for i in x]
 plt.plot(x,y)
 
+
 plt.yscale('log')
 plt.ylim([-1000000, 1000000])
 plt.xlim([-10, 10])
