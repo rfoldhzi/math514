@@ -10,13 +10,13 @@ def ode(x,y):
 
 def rungeKutta2nd(x,y,h):
     k1 = h*ode(x,y)
-    k2 = h*ode(x + h, y + h*k1)
+    k2 = h*ode(x + h, y + k1)
     return y + .5*(k1+k2)
 
 def rungeKutta3nd(x,y,h):
     k1 = h*ode(x, y)
-    k2 = h*ode(x + h, y + h*k1)
-    k3 = h*ode(x + h*.5, y + h/2*(k1+k2)/2)
+    k2 = h*ode(x + h, y + k1)
+    k3 = h*ode(x + h*.5, y + (k1+k2)/4)
     return y + (k1+k2+4*k3)/6
 
 L = 6*sqrt(pi)
@@ -103,7 +103,7 @@ def adaptiveStepIntegrator(threshold = 4**-1):
         y2nd = rungeKutta2nd(x,y,h)
         y3rd= rungeKutta3nd(x,y,h)
 
-        fEvaluations += 5
+        fEvaluations += 3
 
         Test = abs(y2nd-y3rd)/h
         while Test > threshold:
@@ -111,7 +111,7 @@ def adaptiveStepIntegrator(threshold = 4**-1):
             y2nd = rungeKutta2nd(x,y,h)
             y3rd= rungeKutta3nd(x,y,h)
 
-            fEvaluations += 5
+            fEvaluations += 2
 
             Test = abs(y2nd-y3rd)/h
         y = y2nd
@@ -137,10 +137,12 @@ for T in Tvalues:
 
 print(xs2, ys2)
 
-plt.plot(xs1,ys1)
-plt.plot(xs2,ys2)
+plt.plot(xs1,ys1,linestyle = 'None',marker="o")
+plt.plot(xs2,ys2,linestyle = 'None',marker="o")
 plt.xscale('log')
 plt.yscale('log')
+
+plt.legend(['fixed element', 'adapts'])
 
 
 plt.show()
