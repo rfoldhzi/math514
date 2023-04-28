@@ -38,10 +38,11 @@ for i in range(N):
     y = rungeKutta2nd(x,y,h)
     x += h
 
-# plt.plot(Xs,numerical)
-# plt.plot(Xs,exact)
 
-# plt.show()
+plt.plot(Xs,numerical)
+plt.plot(Xs,exact, '--')
+plt.legend(['Numerical', 'Exact'])
+plt.show()
 
 
 
@@ -75,10 +76,10 @@ print("exact", y, sin(x*x/2) )
 
 print(steps)
 
-# plt.plot(numericalX,numericalY)
-# plt.plot(Xs,exact)
-
-# plt.show()
+plt.plot(numericalX,numericalY)
+plt.plot(Xs,exact, '--')
+plt.legend(['Adaptive', 'Exact'])
+plt.show()
 
 
 def fixedStepIntegrator(N = 2**6):
@@ -141,8 +142,10 @@ plt.plot(xs1,ys1,linestyle = 'None',marker="o")
 plt.plot(xs2,ys2,linestyle = 'None',marker="o")
 plt.xscale('log')
 plt.yscale('log')
+plt.xlabel('Absolute Error')
+plt.ylabel('Evaluations of f')
 
-plt.legend(['fixed element', 'adapts'])
+plt.legend(['Fixed Element', 'Adaptive'])
 
 
 plt.show()
