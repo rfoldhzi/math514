@@ -4,6 +4,8 @@ from matplotlib import pyplot as plt
 from scipy.special import binom
 import matplotlib.colors as colors
 import time
+import random
+from threading import Thread, Lock
 np.seterr(all='raise')
 
 def ode(xValues, yValues):
@@ -85,7 +87,7 @@ def calcABC(hitSides,nearHitSides,missesSides,diceCount, converts):
     c = findOptimalScale(a,b,x,y)
     return a,b,c
 
-def attempt1(): #Figure 1
+def Figure2_6a(): #Figure 2.6a
     bestAs = []
     bestBs = []
     bestCs = []
@@ -113,14 +115,15 @@ def attempt1(): #Figure 1
     plt.plot(theHitSides, bestAs, label='a value')
     plt.plot(theHitSides, bestBs, label='b value')
     plt.plot(theHitSides, bestCs, label='c value')
-    plt.xlabel('Value of Variable')
-    plt.ylabel('Percentage of Hit Sides') 
+    plt.xlabel('Pecentage of Hit Sides')
+    plt.ylabel('Values of a, b, c') 
+    plt.title("Figure 2.6a")
     plt.legend()
     plt.show()
 
 
 
-def attempt2(): #Figure 2
+def Figure2_6b(): #Figure 2
     bestAs = []
     bestBs = []
     bestCs = []
@@ -151,11 +154,12 @@ def attempt2(): #Figure 2
     plt.plot(numbersOfDice, bestBs, label='b value')
     plt.plot(numbersOfDice, bestCs, label='c value')
     plt.xlabel('Number of Dice')
-    plt.ylabel('Percentage of Hit Sides') 
+    plt.ylabel('Values of a, b, c') 
+    plt.title("Figure 2.6b")
     plt.legend()
     plt.show()
 
-def attempt3(): #Figure 3
+def Figure2_6c(): #Figure 3
     bestAs = []
     bestBs = []
     bestCs = []
@@ -183,12 +187,13 @@ def attempt3(): #Figure 3
     plt.plot(theHitSides, bestAs, label='a value')
     plt.plot(theHitSides, bestBs, label='b value')
     plt.plot(theHitSides, bestCs, label='c value')
-    plt.xlabel('Number of Dice')
-    plt.ylabel('Percentage of Hit Sides') 
+    plt.xlabel('Percentage of Hit Sides')
+    plt.ylabel('Values of a, b, c') 
+    plt.title("Figure 2.6c")
     plt.legend()
     plt.show()
 
-def attempt4(): #Figure 4
+def Figure2_6d(): #Figure 4
     bestAs = []
     bestBs = []
     bestCs = []
@@ -216,9 +221,64 @@ def attempt4(): #Figure 4
     plt.plot(convertCounts, bestAs, label='a value')
     plt.plot(convertCounts, bestBs, label='b value')
     plt.plot(convertCounts, bestCs, label='c value')
-    plt.xlabel('Number of Dice')
-    plt.ylabel('Percentage of Hit Sides') 
+    plt.xlabel('Number of Dice Conversions')
+    plt.ylabel('Values of a, b, c') 
+    plt.title("Figure 2.6d")
     plt.legend()
     plt.show()
 
-attempt2()
+
+def generateRandomSample():
+    hitSides = random.random()
+    missesSides = random.random()*(1-hitSides)
+    nearHitSides = 1-missesSides-hitSides
+    diceCount = random.randint(2,50)
+    converts = random.randint(0,diceCount)
+    #print(hitSides, missesSides, nearHitSides, diceCount, converts)
+    a,b,c = calcABC(hitSides,nearHitSides,missesSides,diceCount, converts)
+    return (hitSides, missesSides, nearHitSides, diceCount, converts), (a,b,c)
+
+
+log_mutex = Lock()
+threadCount = 4
+countPerThread = 1000
+
+
+from multiprocessing import Process, Pool
+
+def SampleGeneratingThread(num):
+
+    XMatrix = np.zeros((countPerThread,5))
+    YMatrix = np.zeros((countPerThread,3))
+
+    for i in range(countPerThread):
+        sample = generateRandomSample()
+        XMatrix[i, :] = sample[0]
+        YMatrix[i, :] = sample[1]
+        print("Thread %s %s/%s" % (num, i+1, countPerThread))
+
+    return XMatrix, YMatrix
+
+
+def multiThreadedSampleGeneration():
+    with Pool(threadCount) as p:
+        results = p.map(SampleGeneratingThread, range(threadCount))
+    
+    XMatrix = np.zeros((countPerThread*threadCount,5))
+    YMatrix = np.zeros((countPerThread*threadCount,3))
+    for i in range(len(results)):
+        XMatrix[(i*countPerThread):(i*countPerThread+countPerThread), :] = results[i][0]
+        YMatrix[(i*countPerThread):(i*countPerThread+countPerThread), :] = results[i][1]
+
+    with open('xMatrix3.npy', 'wb') as f:
+        np.save(f, XMatrix)
+    with open('yMatrix3.npy', 'wb') as f:    
+        np.save(f, YMatrix)
+
+
+if __name__ == "__main__":
+    #These methods may take several methods to calculate
+    Figure2_6a()
+    Figure2_6b()
+    Figure2_6c()
+    Figure2_6d()

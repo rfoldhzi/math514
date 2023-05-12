@@ -3,8 +3,10 @@ from matplotlib import pyplot as plt
 from scipy.special import binom
 import matplotlib.colors as colors
 
+# Generates the multistep ode from the cdf
+# Here, the xValues is the number of hits, while yValues is the probability
+# of obtaining that number of hits or greater
 def ode(xValues, yValues):
-    print("=?=?=? yValues",yValues)
     outX = []
     outY = []
     for i in range(len(xValues)-1):
@@ -25,135 +27,104 @@ def multinomial(params):
     return binom(sum(params), params[-1]) * multinomial(params[:-1])
 
 
+#Generates the cdf for a given set of inputs
+def generateCDF(hitSides, nearHitSides, missesSides, diceCount, converts):
+    totalSides = missesSides+nearHitSides+hitSides
 
-missesSides = 6
-nearHitSides = 8
-hitSides = 8
+    matrix = np.zeros((diceCount+1,diceCount+1))
+    for i in range(diceCount+1):
+        for j in range(diceCount+1):
+            matrix[i,j] = multinomial2([i,j], diceCount) \
+            * ((hitSides/totalSides)**i)  * ((nearHitSides/totalSides)**j) * ((missesSides/totalSides)**(diceCount-i-j))
 
-totalSides = missesSides+nearHitSides+hitSides
+    pdf = [0] * (diceCount+1)
+    for i in range(diceCount+1):
+        for j in range(diceCount+1):
+            if matrix[i,j] > 0:
+                hitCount = i + min(converts,j) # Here is where we account for the number of conversions
+                pdf[hitCount] += matrix[i,j]
 
-diceCount = 10
+    cdf = [0] * (diceCount+2)
+    for i in range(diceCount+1):
+        cdf[i] = min(1, sum(pdf[i:])) # Floating point may add to slightly more than 1, so we fix that here
 
-matrix = np.zeros((diceCount+1,diceCount+1))
-for i in range(diceCount+1):
-    for j in range(diceCount+1):
-        matrix[i,j] = multinomial2([i,j], diceCount) \
-        * ((hitSides/totalSides)**i)  * ((nearHitSides/totalSides)**j) * ((missesSides/totalSides)**(diceCount-i-j))
-print(matrix)
-
-d = [0] * (diceCount+1)
-for i in range(diceCount+1):
-    for j in range(diceCount+1):
-        if matrix[i,j] > 0:
-            hitCount = i + min(1,j)
-            d[hitCount] += matrix[i,j]
-
-print(d)
-
-cdf = [0] * (diceCount+2)
-for i in range(diceCount+1):
-    cdf[i] = sum(d[i:])
-
-print("CDF",cdf)
-cdf[0] = 1 #Floating point may add to not exactly one, but for consistency, we just set it to 1
-print("Not CDF",cdf)
-
-x,y = ode(range(len(cdf)),cdf)
-plt.plot(x, y)
-
-a = 0.889#0.8
-b = 0.6877
-c = 0.6
-
-def f(x):
-    #a = 0.8163#0.8
-    #b = 0.3959
-    #c = 1#0.6
-    print("c",c)
-    print("x", x, "x**a",x**a, "(1-x)**b",(1-x)**b, "subEnd:",x**a*(1-x)**b, c*x**a*(1-x)**b)
-    return c*x**a*(1-x)**b
+    return cdf
 
 
+#Used for Figure 2.1
+def plotODE(show = False): 
+    cdf = generateCDF(hitSides = 4, 
+                    nearHitSides = 1, 
+                    missesSides = 3, 
+                    diceCount = 12, 
+                    converts = 1)
+    x,y = ode(range(len(cdf)),cdf)
+    plt.plot(x, y, label="Steps of y_n")
+    plt.xlabel("Value of Y")
+    plt.ylabel("Value of Y prime")
+    if show:
+        plt.title("Figure 2.1")
+        plt.legend()
+        plt.show()
 
-supposedC = 0
-over = 0
-for i in range(len(y)):
-    if f(x[i]) != 0:
-        supposedC += y[i]*y[i]/f(x[i])
-        over += y[i]
-
-supposedC /= over
+plotODE(True)
 
 def findOptimalScale(a,b, yValues):
-    def f(x):
-        if x>1: #Weird fix for RuntimeWarning: invalid value encountered in double_scalars
-            x =1 
+    def g(x):
+        if x>1:
+            x = 1 
         return x**a*(1-x)**b
     oldX = yValues
-    newY = [f(v) for v in x]
-    m, c = np.linalg.lstsq(np.vstack([oldX, np.ones(len(oldX))]).T, newY, rcond=None)[0]
+    newY = [g(v) for v in x]
+    m, offset = np.linalg.lstsq(np.vstack([oldX, np.ones(len(oldX))]).T, newY, rcond=None)[0]
+    # Here offset is typically very close to 0, so we can generally ignore it
     return 1/m
 
-#c = supposedC
-c = findOptimalScale(a,b, y)
-print("NEW C",c)
+def FigureX0():
 
-steps = 100
-x2 = np.linspace(0, 1, steps)
-y2 = [f(v) for v in x2]
-for v in x2:
-    print(v,f(v)) #f(v) is nan for some reason (TODO: Fix)
-plt.plot(x2, y2)
+    a = 0.94360902
+    b = 0.67744361
+    
+    def g(x):
+        return c*x**a*(1-x)**b
+
+    c = findOptimalScale(a,b, y)
+
+    steps = 100
+    x2 = np.linspace(0, 1, steps)
+    y2 = [g(v) for v in x2]
+    for v in x2:
+        print(v,g(v))
+    plt.plot(x2, y2)
+
+    plt.show()
 
 
-print(sum(y2)/steps, supposedC)
-print(sum(y)) #The sum of y's of this ODE is 1. Could relate this 
-#somehow to the integral
-
-plt.show()
-
-
-#x**a*(1-x)**b
-#x*(1-x)*(2*x*x+6*x+5)
 
 def calculateError(a,b):
     c = 1
-    def f(x):
+    def g(x):
         return c*x**a*(1-x)**b
     
-    # supposedC = 0
-    # over = 0
-    # for i in range(len(y)):
-    #     if f(x[i]) != 0:
-    #         supposedC += y[i]*y[i]/f(x[i])
-    #         over += y[i]
-
-    #supposedC /= over
-    #c = supposedC
     c = findOptimalScale(a,b, y)
     
     totalError = 0
     for i in range(len(y)):
-        totalError += abs(y[i]-f(x[i]))
+        totalError += abs(y[i]-g(x[i]))
     
     return totalError
 
-def scatterPlot(a,b):
+def scatterPlot(a,b, xValues, yValues):
     C = 1
-    def f(x):
+    def g(x):
         return C*x**a*(1-x)**b
 
-    #C = 0.6
+    oldX = yValues
+    newY = [g(v) for v in xValues]
 
-    oldX = y
-
-
-    newY = [f(v) for v in x]
-    
-
-    plt.plot(oldX,newY,"p")
-    X = np.linspace(0, 0.35, 3)
-    plt.plot(X,X)
+    plt.plot(oldX,newY,"p",label="Original Points")
+    X = np.linspace(0, 0.26, 3)
+    plt.plot(X,X, label="Target Line x=x")
 
     m, c = np.linalg.lstsq(np.vstack([oldX, np.ones(len(oldX))]).T, newY, rcond=None)[0]
     #c seems to be very close to 0
@@ -161,45 +132,44 @@ def scatterPlot(a,b):
     plt.plot(oldX, newY, 'r', label='Fitted line')
     print("m,c",m,c)
 
-    newPointsY1 = [f(v) for v in x] #You are here, make sure this works
-    newPointsY2 = [(f(v)/m) for v in x]
-    print("newPointsY1",newPointsY1,newPointsY2)
-    plt.plot(oldX,newPointsY2,"rp")
-
+    newPointsY1 = [g(v) for v in xValues] 
+    newPointsY2 = [(g(v)/m) for v in xValues]
+    plt.plot(oldX,newPointsY2,"rp",label="Translated points")
+    plt.legend()
+    plt.xlabel("Values of Y'(x)")
+    plt.ylabel("Values of g(x)")
+    plt.title("Figure 2.2")
     plt.show()
 
 
 
-#scatterPlot(0.8163,0.4)
+cdf = generateCDF(hitSides = 4, 
+                nearHitSides = 1, 
+                missesSides = 3, 
+                diceCount = 12, 
+                converts = 1)
+x,y = ode(range(len(cdf)),cdf)
 
-print("calculateError11",calculateError(1,1))
-print("calculateError01",calculateError(0,1))
-print("calculateError10",calculateError(1,0))
-print("calculateError00",calculateError(0,0))
 
-print("calculateError0.8,0.3",calculateError(0.8,0.3))
+def Figure2_2():
+    scatterPlot(0.8163,0.4,x,y)
 
-def attempt1():
-    x = y = np.linspace(0, 1, 50)
-    z = np.array([calculateError(i,j) for j in y for i in x])
-    Z = z.reshape(50, 50)
-    print(Z)
-    plt.imshow(Z, interpolation='bilinear')
-    plt.show()
-
-def attempt2():
+#Figures 2.3 and 2.4
+def Figure2_3and4():
     xx = np.linspace(0.1, 1, 50)
     yy = np.linspace(0.1, 1, 50)
     z = np.array([calculateError(i,j) for j in yy for i in xx])
-    print("min", min(z))
+
     minValue = min(z)
     Z = z.reshape(50, 50)
     itemindex = np.where(Z == minValue)
-    print("itemIndex",itemindex)
-    print(xx[itemindex[0]], yy[itemindex[1]])
-    
-    print(Z)
+
     plt.imshow(Z, interpolation='bilinear', norm=colors.LogNorm(vmin=Z.min(), vmax=Z.max()),)
+    plt.xlabel("a Values")
+    plt.ylabel("b Values")
+    plt.xticks([1,49],["0.1","1.0"])
+    plt.yticks([1,49],["0.1","1.0"])
+    plt.title("Figure 2.3")
     plt.show()
 
     a,b = xx[itemindex[1]][0], yy[itemindex[0]][0]
@@ -212,12 +182,15 @@ def attempt2():
     steps = 100
     x2 = np.linspace(0, 1, steps)
     y2 = [f2(v) for v in x2]
-    plt.plot(x2, y2)
-    plt.plot(x, y)
+    plt.plot(x, y,label="Steps of y_n")
+    plt.plot(x2, y2,label="g(Y)")
+    plt.xlabel("Value of Y")
+    plt.ylabel("Value of Y prime")
+    plt.title("Figure 2.4")
+    plt.legend()
     plt.show()
 
-def given(A,B,C,start):
-    print("a,b,c",A,B,C)
+def reconstructCDF(A,B,C,start):
     xValues = [0,1]
     yValues = [1,start]
 
@@ -227,10 +200,25 @@ def given(A,B,C,start):
     while yValues[-1] > 0:
         xValues.append(len(xValues))
         yValues.append(max(yValues[-1]-f2(yValues[-1]),0))
+
+    #Here we offsetX by the difference in expected values
+    expectedValue = 0
+    for i in range(len(cdf)-1):
+        expectedValue += i*(cdf[i]-cdf[i+1])
     
-    plt.plot(xValues,yValues)
-    print("cdf",cdf)
-    plt.plot(range(len(cdf)), cdf)
+    expectedValueOfG = 0
+    for i in range(len(yValues)-1):
+        expectedValueOfG += i*(yValues[i]-yValues[i+1])
+
+    xOffset = expectedValue - expectedValueOfG
+    xValues = [x+xOffset for x in xValues]
+    
+    plt.plot(range(len(cdf)), cdf, label="CDF of Y")
+    plt.plot(xValues,yValues,'o', label="k_n")
+    plt.xlabel("Value of Y")
+    plt.ylabel("Value of Y prime")
+    plt.title("Figure 2.5")
+    plt.legend()
     plt.show()
 
 
@@ -240,21 +228,14 @@ def attempt3():
     xx = np.linspace(0.1, 1, 50)
     yy = np.linspace(0.1, 1, 50)
     z = np.array([calculateError(i,j) for j in yy for i in xx])
-    print("min", min(z))
     minValue = min(z)
     Z = z.reshape(50, 50)
     itemindex = np.where(Z == minValue)
-    print("itemIndex",itemindex)
-    print(xx[itemindex[0]], yy[itemindex[1]])
-    
-    print(Z)
-    plt.imshow(Z, interpolation='bilinear', norm=colors.LogNorm(vmin=Z.min(), vmax=Z.max()),)
-    plt.show()
 
     a,b = xx[itemindex[1]][0], yy[itemindex[0]][0]
     print("a,b",a,b)
     c = findOptimalScale(a,b,y)
 
-    given(a,b,c,cdf[1])
+    reconstructCDF(a,b,c,cdf[1])
 
-attempt3()
+Figure2_3and4()
