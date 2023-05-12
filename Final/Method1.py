@@ -3,6 +3,9 @@ from matplotlib import pyplot as plt
 from scipy.special import binom
 import math
 
+
+#This file is used to generate Figures for method 1
+
 def PolyCoefficients2(x, coeffs):
     """ Returns a polynomial for ``x`` values for the ``coeffs`` provided.
 

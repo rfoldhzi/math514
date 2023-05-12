@@ -3,6 +3,9 @@ from matplotlib import pyplot as plt
 from scipy.special import binom
 import matplotlib.colors as colors
 
+#This file is used to generate Figures for method 2
+
+
 # Generates the multistep ode from the cdf
 # Here, the xValues is the number of hits, while yValues is the probability
 # of obtaining that number of hits or greater
@@ -67,8 +70,6 @@ def plotODE(show = False):
         plt.legend()
         plt.show()
 
-plotODE(True)
-
 def findOptimalScale(a,b, yValues):
     def g(x):
         if x>1:
@@ -80,7 +81,7 @@ def findOptimalScale(a,b, yValues):
     # Here offset is typically very close to 0, so we can generally ignore it
     return 1/m
 
-def FigureX0():
+def FigureX():
 
     a = 0.94360902
     b = 0.67744361
@@ -99,8 +100,7 @@ def FigureX0():
 
     plt.show()
 
-
-
+#Calculate total absolute error of given a,b on cdf
 def calculateError(a,b):
     c = 1
     def g(x):
@@ -114,6 +114,7 @@ def calculateError(a,b):
     
     return totalError
 
+#Generate scatteplot and linear regresssion used in figure 2.2
 def scatterPlot(a,b, xValues, yValues):
     C = 1
     def g(x):
@@ -224,7 +225,9 @@ def reconstructCDF(A,B,C,start):
 
     pass #You know, try to reconstruct the cdf from the thing
 
-def attempt3():
+
+#Figures 2.5
+def Figure2_5():
     xx = np.linspace(0.1, 1, 50)
     yy = np.linspace(0.1, 1, 50)
     z = np.array([calculateError(i,j) for j in yy for i in xx])
@@ -238,4 +241,8 @@ def attempt3():
 
     reconstructCDF(a,b,c,cdf[1])
 
+#Show Figures
+plotODE(True) #Figure 2.1
+Figure2_2()
 Figure2_3and4()
+Figure2_5()

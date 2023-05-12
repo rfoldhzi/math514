@@ -8,6 +8,9 @@ import random
 from threading import Thread, Lock
 np.seterr(all='raise')
 
+#This file was used to generate sample data for neural network and Figure 2.6
+
+
 def ode(xValues, yValues):
     outX = []
     outY = []

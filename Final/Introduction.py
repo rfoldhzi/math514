@@ -2,6 +2,8 @@ import numpy as np
 from scipy.special import binom
 import matplotlib.pyplot as plt
 
+#This file is used to generate Figures for the introduction
+
 def multinomial2(params, n):
     if sum(params) > n:
         return 0
